@@ -190,7 +190,6 @@ dialog::backdrop{background:rgba(42,27,30,.65)}
 /* =========================================================
    9. FORMULARIO DE CONTACTO / PEDIDO
    ========================================================= */
-.contact .container{max-width:720px}
 form{display:grid;gap:16px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 label{font-weight:600;font-size:.95rem;display:grid;gap:6px}
@@ -299,10 +298,9 @@ footer p{color:#e6d3c4;margin:8px 0 22px}
         <li><a href="#nosotros">Nosotros</a></li>
         <li><a href="#testimonios">Clientes</a></li>
         <li><a href="#pago">Pago</a></li>
-        <li><a href="#pedido">Pedidos</a></li>
       </ul>
     </nav>
-    <a class="btn btn-primary nav-cta" href="#pedido">Pedir</a>
+    <button type="button" class="btn btn-primary nav-cta" id="navCart">Mi carrito</button>
   </div>
 </header>
 
@@ -314,8 +312,7 @@ footer p{color:#e6d3c4;margin:8px 0 22px}
       <h1>Dulces a tu alcance para cada celebración en Holguín</h1>
       <p>Repostería, helados, pizzas y ensaladas frías hechas para cumpleaños y cada ocasión que merece celebrarse.</p>
       <div class="hero-actions">
-        <a href="#pedido" class="btn btn-primary">Haz tu pedido</a>
-        <a href="#productos" class="btn btn-ghost">Ver productos</a>
+        <a href="#productos" class="btn btn-primary">Haz tu pedido</a>
       </div>
     </div>
     <div class="hero-photos" aria-hidden="true">
@@ -560,7 +557,7 @@ footer p{color:#e6d3c4;margin:8px 0 22px}
       <div class="zelle" aria-label="Zelle">Zelle</div>
       <div>
         <ol>
-          <li><strong>Haz tu pedido</strong> con el formulario de abajo.</li>
+          <li><strong>Arma tu pedido</strong> en el carrito y llena tus datos de entrega.</li>
           <li><strong>Confirmamos tu pedido</strong> por WhatsApp y te damos los datos de Zelle.</li>
           <li><strong>Envía el pago</strong> y mándanos la captura por WhatsApp.</li>
         </ol>
@@ -570,54 +567,6 @@ footer p{color:#e6d3c4;margin:8px 0 22px}
   </div>
 </section>
 
-<!-- ============ FORMULARIO ============ -->
-<section class="contact" id="pedido">
-  <div class="container">
-    <h2 class="reveal">Haz tu pedido</h2>
-    <p class="lead reveal">Cuéntanos qué necesitas y te respondemos por WhatsApp.</p>
-    <form id="orderForm" class="reveal" novalidate>
-      <div class="row">
-        <label>Nombre
-          <input type="text" name="nombre" autocomplete="name" required>
-        </label>
-        <label>Teléfono
-          <input type="tel" name="telefono" autocomplete="tel" required>
-        </label>
-      </div>
-      <div class="row">
-        <label>Producto
-          <select name="producto" required>
-            <option value="">Selecciona una opción</option>
-            <option>Cake de tres pisos ($20)</option>
-            <option>Cake en forma de corazón ($10)</option>
-            <option>Cake rectangular, media bandeja ($17)</option>
-            <option>Cake rectangular bandeja completa personalizado ($30)</option>
-            <option>Cake revelación de sexo ($10)</option>
-            <option>Cake corazón rosa ($8)</option>
-            <option>Cake circular 18 cm ($5)</option>
-            <option>Cake circular 24 cm ($10)</option>
-            <option>Pastel de chocolate con cupcakes ($15)</option>
-            <option>Cupcakes con rosas, 10 unidades ($4)</option>
-            <option>Pastel de hojaldre de guayaba, 21 cm ($4)</option>
-            <option>Dulcitos, 10 unidades ($7)</option>
-            <option>Helado caja de 4 litros ($8)</option>
-            <option>Pizza familiar napolitana ($6)</option>
-            <option>Repostería</option><option>Helados</option><option>Dulces</option>
-            <option>Pizzas</option><option>Ensalada fría, tanquetica de 4 litros ($10)</option>
-          </select>
-        </label>
-        <label>Fecha del evento
-          <input type="date" name="fecha">
-        </label>
-      </div>
-      <label>Detalles del pedido
-        <textarea name="detalles" placeholder="Cantidad, sabores, dirección de entrega..."></textarea>
-      </label>
-      <button class="btn btn-primary" type="submit">Enviar pedido por WhatsApp</button>
-      <p class="msg" id="formMsg" role="status" aria-live="polite"></p>
-    </form>
-  </div>
-</section>
 </main>
 
 <!-- ============ CARRITO ============ -->
@@ -730,45 +679,23 @@ const io = new IntersectionObserver((entries) => {
 }, { threshold: 0.15 });
 document.querySelectorAll(".reveal").forEach(el => io.observe(el));
 
-/* Formulario: valida y abre WhatsApp con el pedido ya escrito */
-const form = document.getElementById("orderForm");
-const msg = document.getElementById("formMsg");
-
-form.addEventListener("submit", (ev) => {
-  ev.preventDefault();
-  const d = Object.fromEntries(new FormData(form));
-  msg.className = "msg";
-
-  if (!d.nombre.trim() || !d.telefono.trim() || !d.producto) {
-    msg.classList.add("error");
-    msg.textContent = "Completa tu nombre, teléfono y el producto que quieres.";
-    return;
-  }
-
-  const text =
-    "Hola, quiero hacer un pedido:\n" +
-    "Nombre: " + d.nombre + "\n" +
-    "Teléfono: " + d.telefono + "\n" +
-    "Producto: " + d.producto + "\n" +
-    "Fecha: " + (d.fecha || "Por definir") + "\n" +
-    "Detalles: " + (d.detalles || "Sin detalles");
-
-  window.open("https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(text), "_blank");
-  msg.classList.add("ok");
-  msg.textContent = "Listo, abrimos WhatsApp con tu pedido.";
-  form.reset();
-});
-
-/* Botones "Pedir": eligen el producto en el formulario y bajan a él */
+/* Botones "Pedir": agregan el producto al carrito y lo abren para completar la compra */
 document.querySelectorAll(".order-btn").forEach(btn => {
   btn.addEventListener("click", () => {
+    const prod = parseProduct(btn.dataset.product);
+    if (!prod) return;
     const d = btn.closest("dialog"); if (d) d.close();
-    form.elements.producto.value = btn.dataset.product;
-    // Si el producto trae una nota sugerida (ej. agregados), la escribe en detalles
-    if (btn.dataset.notes && !form.elements.detalles.value) form.elements.detalles.value = btn.dataset.notes;
-    document.getElementById("pedido").scrollIntoView({ behavior: "smooth" });
+    addToCart(prod.name, prod.price);
+    // Si el producto trae una nota sugerida (agregados de la pizza, sabores del helado), la deja en "Especificación adicional"
+    const notas = checkoutForm.elements.notas;
+    if (btn.dataset.notes && !notas.value.includes(btn.dataset.notes.trim())) notas.value += (notas.value ? "\n" : "") + btn.dataset.notes;
+    checkoutMsg.textContent = "";
+    cartDlg.showModal();
   });
 });
+
+/* Botón "Mi carrito" del menú */
+document.getElementById("navCart").addEventListener("click", () => document.getElementById("cartFab").click());
 
 /* Ventana de dulces: se abre al tocar la tarjeta "Dulces" */
 const dlg = document.getElementById("dulcesDialog");
@@ -891,6 +818,11 @@ let cart = []; // [{ name, price, qty }]
 try { cart = JSON.parse(localStorage.getItem("cart") || "[]"); } catch (e) { cart = []; }
 if (!Array.isArray(cart)) cart = [];
 
+/* "Cake de tres pisos ($20)" -> { name: "Cake de tres pisos", price: 20 } */
+function parseProduct(v) {
+  const m = (v || "").match(/^(.*?)\s*\(\$([\d.]+)\)$/);
+  return m ? { name: m[1], price: parseFloat(m[2]) } : null;
+}
 const money = n => "$" + (Number.isInteger(n) ? n : n.toFixed(2));
 const saveCart = () => { try { localStorage.setItem("cart", JSON.stringify(cart)); } catch (e) {} };
 
@@ -949,9 +881,9 @@ cartDlg.addEventListener("click", e => { if (e.target === cartDlg) cartDlg.close
 
 /* Añade el botón de carrito junto a cada botón "Pedir" que tenga precio, p. ej. "Cake ($20)" */
 document.querySelectorAll(".order-btn").forEach(btn => {
-  const m = (btn.dataset.product || "").match(/^(.*?)\s*\(\$([\d.]+)\)$/);
-  if (!m) return;
-  const name = m[1], price = parseFloat(m[2]);
+  const prod = parseProduct(btn.dataset.product);
+  if (!prod) return;
+  const name = prod.name, price = prod.price;
   const wrap = document.createElement("div"); wrap.className = "actions";
   btn.parentNode.insertBefore(wrap, btn); wrap.appendChild(btn);
   const add = document.createElement("button");
