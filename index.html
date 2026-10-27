@@ -230,7 +230,8 @@ textarea{min-height:120px;resize:vertical}
 .cart-dialog{width:min(600px,94vw)}
 .cart-empty{color:var(--muted);padding:20px 0}
 .cart-items{list-style:none;display:grid;gap:12px}
-.cart-item{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;background:#fff;border-radius:16px;padding:12px 14px}
+.ci-thumb{width:64px;height:64px;border-radius:14px;background:var(--soft) center/cover no-repeat}
+.cart-item{display:grid;grid-template-columns:64px 1fr auto auto auto;gap:10px;align-items:center;background:#fff;border-radius:16px;padding:12px 14px}
 .ci-info small{display:block;color:var(--muted)}
 .qty{display:flex;align-items:center;gap:8px}
 .qty button{width:34px;height:34px;border-radius:50%;border:2px solid var(--soft);background:var(--soft);font-size:1.2rem;font-weight:700;cursor:pointer;color:var(--ink)}
@@ -243,7 +244,7 @@ textarea{min-height:120px;resize:vertical}
 .link-btn{border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;font:inherit;font-size:.9rem;margin-bottom:12px}
 .cart-dialog h4{font-size:1.25rem;margin:8px 0}
 .cart-note{color:var(--muted);font-size:.9rem}
-@media(max-width:560px){.cart-item{grid-template-columns:1fr auto;grid-template-areas:"info del" "qty sub"}.ci-info{grid-area:info}.ci-del{grid-area:del}.qty{grid-area:qty}.ci-sub{grid-area:sub}}
+@media(max-width:560px){.cart-item{grid-template-columns:64px 1fr auto;grid-template-areas:"thumb info del" "thumb qty sub"}.ci-thumb{grid-area:thumb;width:64px;height:64px;align-self:center}.ci-info{grid-area:info}.ci-del{grid-area:del}.qty{grid-area:qty}.ci-sub{grid-area:sub}}
 
 /* =========================================================
    10. FOOTER
@@ -780,9 +781,13 @@ commentForm.addEventListener("submit", (ev) => {
 
   commentBtn.disabled = true;
   commentMsg.textContent = "Enviando tu comentario...";
+  // 1) envía el comentario  2) vuelve a leer la lista para comprobar que de verdad se guardó
   fetch(COMMENTS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" },
     body: JSON.stringify({ nombre, comentario }) })
-    .then(() => {
+    .then(() => fetch(COMMENTS_URL + "?t=" + Date.now()))
+    .then(r => r.json())
+    .then(list => {
+      if (!Array.isArray(list) || !list.some(c => c.comentario === comentario)) throw new Error("no guardado");
       try { localStorage.setItem("lastComment", Date.now()); } catch (e) {}
       addComment(nombre || "Cliente", comentario, true);
       commentMsg.className = "msg ok";
@@ -791,7 +796,7 @@ commentForm.addEventListener("submit", (ev) => {
     })
     .catch(() => {
       commentMsg.className = "msg error";
-      commentMsg.textContent = "No pudimos enviar tu comentario. Revisa tu conexión e inténtalo de nuevo.";
+      commentMsg.textContent = "No pudimos guardar tu comentario. Inténtalo de nuevo más tarde.";
     })
     .finally(() => { commentBtn.disabled = false; });
 });
@@ -814,6 +819,7 @@ const toast = document.getElementById("toast");
 const checkoutForm = document.getElementById("checkoutForm");
 const checkoutMsg = document.getElementById("checkoutMsg");
 
+const thumbs = {}; // nombre del producto -> imagen de su tarjeta (para mostrarla en el carrito)
 let cart = []; // [{ name, price, qty }]
 try { cart = JSON.parse(localStorage.getItem("cart") || "[]"); } catch (e) { cart = []; }
 if (!Array.isArray(cart)) cart = [];
@@ -845,6 +851,8 @@ function renderCart() {
   cart.forEach((it, idx) => {
     total += it.price * it.qty; units += it.qty;
     const li = document.createElement("li"); li.className = "cart-item";
+    const th = document.createElement("div"); th.className = "ci-thumb"; th.setAttribute("role", "img"); th.setAttribute("aria-label", it.name);
+    if (thumbs[it.name]) th.style.backgroundImage = thumbs[it.name];
     const info = document.createElement("div"); info.className = "ci-info";
     const nm = document.createElement("strong"); nm.textContent = it.name;
     const pr = document.createElement("small"); pr.textContent = money(it.price) + " c/u";
@@ -859,7 +867,7 @@ function renderCart() {
     const sub = document.createElement("div"); sub.className = "ci-sub"; sub.textContent = money(it.price * it.qty);
     const del = document.createElement("button"); del.type = "button"; del.className = "ci-del"; del.textContent = "✕";
     del.setAttribute("aria-label", "Quitar " + it.name + " del carrito"); del.dataset.act = "del"; del.dataset.i = idx;
-    li.append(info, qty, sub, del); cartList.appendChild(li);
+    li.append(th, info, qty, sub, del); cartList.appendChild(li);
   });
   cartTotal.textContent = money(total);
   cartCount.textContent = units; cartCount.hidden = units === 0;
@@ -884,6 +892,12 @@ document.querySelectorAll(".order-btn").forEach(btn => {
   const prod = parseProduct(btn.dataset.product);
   if (!prod) return;
   const name = prod.name, price = prod.price;
+  // guarda la foto de la tarjeta para mostrarla en el carrito
+  const card = btn.closest(".featured, .pcard");
+  const pic = card && card.querySelector("img");
+  const bgEl = card && card.querySelector(".pimg");
+  if (pic) thumbs[name] = 'url("' + pic.src + '")';
+  else if (bgEl) thumbs[name] = getComputedStyle(bgEl).backgroundImage;
   const wrap = document.createElement("div"); wrap.className = "actions";
   btn.parentNode.insertBefore(wrap, btn); wrap.appendChild(btn);
   const add = document.createElement("button");
